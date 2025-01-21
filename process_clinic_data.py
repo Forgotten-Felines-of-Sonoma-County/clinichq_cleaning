@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import os
 
 # Status and Type mappings
 CHECKOUT_STATUS = {
@@ -52,12 +53,16 @@ def process_clinic_data():
         if not isinstance(all_data, list):
             all_data = [all_data]
     
+    total_records = len(all_data)
+    print(f"Starting to process {total_records} records...")
+    
     # Initialize containers for clean and dirty data
     formatted_data = []
     dirty_cats = []
     
     # Process each record
-    for data in all_data:
+    for i, data in enumerate(all_data, 1):
+        print(f"Processing record {i}/{total_records}")
         record_date = data.get('date')
         microchip = data.get('microchipNumber')
         
@@ -112,21 +117,22 @@ def process_clinic_data():
                 "primary_color": data['primaryColor'],
                 "secondary_color": data['secondaryColor'],
                 "spayed_neutered": spayed_neutered,
-                "owner_id": 1,  # This should be dynamically assigned
-                "appointment_id": 1,  # This should be dynamically assigned
+                # "owner_id": 1,  # This should be dynamically assigned
+                # "appointment_id": 1,  # This should be dynamically assigned
                 "full_address": full_address,
                 "last_updated": record_date
             },
             "appointment": {
-                "appointment_id": 1,  # This should be dynamically assigned
+                # "appointment_id": 1,  # This should be dynamically assigned
                 "microchip": int(microchip),
                 "appointment_type": APPOINTMENT_TYPE[data['appointmentType']],
                 "checkout_status": CHECKOUT_STATUS[data['checkoutStatus']],
                 "date": record_date
             },
             "owner": {
-                "owner_id": 1,  # This should be dynamically assigned
-                "owner_name": f"{data['ownerFirstName']} {data['ownerLastName']}",
+                # "owner_id": 1,  # This should be dynamically assigned
+                "owner_first_name": data['ownerFirstName'],
+                "owner_last_name": data['ownerLastName'],
                 "owner_cell_phone": data['ownerCellPhone'],
                 "owner_home_phone": data['ownerHomePhone'],
                 "owner_address": full_address,
