@@ -113,6 +113,7 @@ def process_clinic_data():
                 "secondary_color": data['secondaryColor'],
                 "spayed_neutered": spayed_neutered,
                 "owner_id": 1,  # This should be dynamically assigned
+                "appointment_id": 1,  # This should be dynamically assigned
                 "full_address": full_address,
                 "last_updated": record_date
             },
