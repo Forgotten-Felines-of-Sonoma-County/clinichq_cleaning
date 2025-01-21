@@ -44,7 +44,7 @@ def calculate_current_age(record_date_str, original_years, original_months):
 
 def process_clinic_data():
     # Read JSON file and parse string if needed
-    with open('data/clinichq_1.json', 'r') as file:
+    with open('data/clinichq_raw_data.json', 'r') as file:
         all_data = json.load(file)
         # If the data is a string, parse it again
         if isinstance(all_data, str):
@@ -66,24 +66,45 @@ def process_clinic_data():
         record_date = data.get('date')
         microchip = data.get('microchipNumber')
         
-        # Add to dirty_cats if no record date or no valid microchip
-        if not record_date or not (microchip and microchip.strip()):
-            data["reason"] = "Missing record date" if not record_date else "Missing or invalid microchip"
-            dirty_cats.append(data)
-            continue
+        # Collect all validation issues
+        issues = []
+        
+        # Check for record date and microchip
+        if not record_date:
+            issues.append("Missing record date")
+        if not (microchip and microchip.strip()):
+            issues.append("Missing microchip")
+        else:
+            # Only try to convert microchip if it exists
+            try:
+                microchip_number = int(microchip)
+            except (ValueError, TypeError):
+                issues.append(f"Invalid microchip format: {microchip}")
 
         # Check for required address fields
         required_address_fields = ['ownerAddressLine1', 'ownerCity', 'ownerState', 'ownerZip']
         missing_fields = [field for field in required_address_fields if not data.get(field)]
-        
         if missing_fields:
-            data["reason"] = f"Missing address fields: {', '.join(missing_fields)}"
+            issues.append(f"Missing address fields: {', '.join(missing_fields)}")
+
+        # Check for valid checkout status and appointment type
+        checkout_status = data.get('checkoutStatus')
+        if not checkout_status or checkout_status not in CHECKOUT_STATUS:
+            issues.append(f"Invalid checkout status: {checkout_status}")
+
+        appointment_type = data.get('appointmentType')
+        if not appointment_type or appointment_type not in APPOINTMENT_TYPE:
+            issues.append(f"Invalid appointment type: {appointment_type}")
+
+        # If any issues exist, add to dirty_cats with combined reason and skip
+        if issues:
+            data["reason"] = " | ".join(issues)
             dirty_cats.append(data)
             continue
 
         # Calculate current age based on record date plus original age
-        original_years = data['ageYears']
-        original_months = int(data['ageMonths'])
+        original_years = data.get('ageYears', 0) or 0  # Default to 0 if None or empty
+        original_months = int(data.get('ageMonths', 0) or 0)  # Default to 0 if None or empty
         current_years, current_months = calculate_current_age(
             record_date, 
             original_years, 
@@ -118,7 +139,6 @@ def process_clinic_data():
                 "secondary_color": data['secondaryColor'],
                 "spayed_neutered": spayed_neutered,
                 # "owner_id": 1,  # This should be dynamically assigned
-                # "appointment_id": 1,  # This should be dynamically assigned
                 "full_address": full_address,
                 "last_updated": record_date
             },
