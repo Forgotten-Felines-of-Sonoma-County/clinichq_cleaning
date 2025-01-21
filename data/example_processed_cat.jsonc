@@ -1,0 +1,86 @@
+{
+  "cats": [
+    {
+      // if microchip already exists, replace fields with new values
+      // if microchip does not exist lets put this in a new table called dirty_cats
+      "microchip": 981020053419191,
+      "sex": "Male",
+      "cat_name": "Fred 981020053419191", // lets remove the microchip number from the cat name
+      // lets use todays date minus last updated date and the age to calculate the years and months
+      "age_years": 0,
+      "age_months": 2,
+      "breed": "Domestic Short Hair",
+      "primary_color": "Brown Tabby",
+      "secondary_color": "With White",
+      "spayed_neutered": true,
+      "owner_id": 1, // foreign key to owners table
+      "appointment_id": 1, // foreign key to appointments table
+      "full_address": "660 Cherry St, Novato, CA, 94945",
+      "last_updated": "2024-12-02T00:00:00"
+    }
+  ],
+  "appointments": [
+    // do not allow duplicate appointments with the same microchip number with Spay Or Neuter
+    {
+      "appointment_id": 1, // foreign key to cats table
+      "microchip": 981020053419191,
+      "appointment_type": "Spay Or Neuter",
+      "checkout_status": "Checked Out",
+      "date": "2024-12-02T00:00:00"
+    }
+  ],
+  "owners": [
+    {
+      // replace owner data with latest values based on date
+      // to check if owner exists we need to check owner_address, owner_cell_phone, owner_first_name, owner_last_name
+      // if owner_cell_phone is null use owner_home_phone instead
+      // if owner_cell_phone and owner_home_phone are null, use only owner_address and owner_first_name and owner_last_name
+      "owner_id": 1,
+      "owner_first_name": "Toni",
+      "owner_last_name": "Price",
+      "owner_cell_phone": "4152613680",
+      "owner_home_phone": null,
+      "owner_address": "660 Cherry St, Novato, CA, 94945",
+      "date": "2024-12-02T00:00:00" // replace with newest date
+    }
+  ],
+  "dirty_cats": [
+    // if microchip does not exist lets put raw data in a new table called dirty_cats
+    {
+      // raw data from clinichq
+      "date": "2024-12-02T00:00:00",
+      "appointmentType": 1,
+      "checkoutStatus": 3,
+      "animalName": "Fred 981020053419191",
+      "animalNumber": "24-4613",
+      "species": "Cat",
+      "sex": "Male",
+      "ageYears": 0,
+      "ageMonths": 2,
+      "breed": "Domestic Short Hair",
+      "isMixed": true,
+      "primaryColor": "Brown Tabby",
+      "secondaryColor": "With White",
+      "microchipProvider": "PetLink",
+      "microchipNumber": null, // check for null or empty string
+      "spayedNeutered": 1,
+      "animalType": "Community Cat (Feral)",
+      "ownerFirstName": "Toni",
+      "ownerLastName": "Price",
+      "ownerCellPhone": "4152613680",
+      "ownerHomePhone": null,
+      "ownerAddressLine1": "660 Cherry St",
+      "ownerAddressLine2": null,
+      "ownerCity": "Novato",
+      "ownerState": "CA",
+      "ownerZip": "94945",
+      "trapperFirstName": null,
+      "trapperLastName": null,
+      "colonyAddressLine1": null,
+      "colonyAddressLine2": null,
+      "colonyCity": null,
+      "colonyState": null,
+      "colonyZip": null
+    }
+  ]
+}

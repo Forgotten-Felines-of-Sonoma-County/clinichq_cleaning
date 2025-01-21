@@ -1,0 +1,34 @@
+{
+  "records": [
+    {
+      "cat": {
+        "microchip": 981020053419191,
+        "sex": "Male",
+        "cat_name": "Fred",
+        "age_years": 1,
+        "age_months": 3,
+        "breed": "Domestic Short Hair",
+        "primary_color": "Brown Tabby",
+        "secondary_color": "With White",
+        "spayed_neutered": true,
+        "owner_id": 1,
+        "full_address": "660 Cherry St, Novato, CA, 94945",
+        "last_updated": "2023-12-02T00:00:00"
+      },
+      "appointment": {
+        "microchip": 981020053419191,
+        "appointment_type": "Spay Or Neuter",
+        "checkout_status": "Checked Out",
+        "date": "2023-12-02T00:00:00"
+      },
+      "owner": {
+        "owner_id": 1,
+        "owner_name": "Toni Price",
+        "owner_cell_phone": "4152613680",
+        "owner_home_phone": null,
+        "owner_address": "660 Cherry St, Novato, CA, 94945",
+        "last_updated": "2023-12-02T00:00:00"
+      }
+    }
+  ]
+}
