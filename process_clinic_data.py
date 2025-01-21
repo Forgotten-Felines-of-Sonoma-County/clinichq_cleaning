@@ -118,6 +118,7 @@ def process_clinic_data():
                 "last_updated": record_date
             },
             "appointment": {
+                "appointment_id": 1,  # This should be dynamically assigned
                 "microchip": int(microchip),
                 "appointment_type": APPOINTMENT_TYPE[data['appointmentType']],
                 "checkout_status": CHECKOUT_STATUS[data['checkoutStatus']],
