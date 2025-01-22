@@ -1,3 +1,3 @@
 # TODO
 
-- [ ] Batch upsert to supabase
+- manually check addresses for weird duplicates
