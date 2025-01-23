@@ -17,13 +17,16 @@ httpx==0.28.1
 hyperframe==6.0.1
 idna==3.10
 multidict==6.1.0
+numpy==2.2.2
 packaging==24.2
+pandas==2.2.3
 postgrest==0.19.1
 propcache==0.2.1
 pydantic==2.10.5
 pydantic_core==2.27.2
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+pytz==2024.2
 realtime==2.1.0
 requests==2.32.3
 six==1.17.0
@@ -33,6 +36,7 @@ StrEnum==0.4.15
 supabase==2.11.0
 supafunc==0.9.2
 typing_extensions==4.12.2
+tzdata==2025.1
 urllib3==2.3.0
 websockets==13.1
 yarl==1.18.3
