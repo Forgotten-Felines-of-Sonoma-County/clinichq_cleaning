@@ -63,6 +63,11 @@ def process_clinic_data():
     # Process each record
     for i, data in enumerate(all_data, 1):
         print(f"Processing record {i}/{total_records}")
+        
+        # Only process records with checkoutStatus = 3 (Checked Out)
+        if data.get('checkoutStatus') != 3:
+            continue
+            
         record_date = data.get('date')
         microchip = data.get('microchipNumber')
         
