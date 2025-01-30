@@ -1,0 +1,294 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "coordinates": [
+                    -122.70504,
+                    38.42656
+                ],
+                "type": "Point"
+            },
+            "properties": {
+                "name": "1320 Deturk Ave",
+                "name_preferred": "1320 De Turk Avenue",
+                "mapbox_id": "dXJuOm1ieGFkcjpiZmUwYjM5My03MDRjLTQ2NzAtYjE4ZC1kM2Q1YzI4NDM4YzU",
+                "feature_type": "address",
+                "address": "1320 De Turk Avenue",
+                "full_address": "1320 De Turk Avenue, Santa Rosa, California 95404, United States",
+                "place_formatted": "Santa Rosa, California 95404, United States",
+                "context": {
+                    "country": {
+                        "id": "dXJuOm1ieHBsYzpJdXc",
+                        "name": "United States",
+                        "country_code": "US",
+                        "country_code_alpha_3": "USA"
+                    },
+                    "region": {
+                        "id": "dXJuOm1ieHBsYzpCbVRz",
+                        "name": "California",
+                        "region_code": "CA",
+                        "region_code_full": "US-CA"
+                    },
+                    "postcode": {
+                        "id": "dXJuOm1ieHBsYzpFdVp1N0E",
+                        "name": "95404"
+                    },
+                    "district": {
+                        "id": "dXJuOm1ieHBsYzpBVW5HN0E",
+                        "name": "Sonoma County"
+                    },
+                    "place": {
+                        "id": "dXJuOm1ieHBsYzpFWHpvN0E",
+                        "name": "Santa Rosa"
+                    },
+                    "neighborhood": {
+                        "id": "dXJuOm1ieHBsYzpJOTNNN0E",
+                        "name": "South Park"
+                    },
+                    "address": {
+                        "id": "dXJuOm1ieGFkcjpiZmUwYjM5My03MDRjLTQ2NzAtYjE4ZC1kM2Q1YzI4NDM4YzU",
+                        "name": "1320 De Turk Avenue",
+                        "address_number": "1320",
+                        "street_name": "De Turk Avenue"
+                    },
+                    "street": {
+                        "id": "dXJuOm1ieGFkcjpiZmUwYjM5My03MDRjLTQ2NzAtYjE4ZC1kM2Q1YzI4NDM4YzU",
+                        "name": "De Turk Avenue"
+                    }
+                },
+                "coordinates": {
+                    "latitude": 38.42656,
+                    "longitude": -122.70504,
+                    "accuracy": "rooftop",
+                    "routable_points": [
+                        {
+                            "name": "Address",
+                            "latitude": 38.426483,
+                            "longitude": -122.705257
+                        }
+                    ]
+                },
+                "language": "en",
+                "maki": "marker",
+                "metadata": {},
+                "_debug": {
+                    "request": {
+                        "raw_query": "",
+                        "raw_encoded_query": "",
+                        "normalized_query": "",
+                        "parsed_query": {},
+                        "tokens": [],
+                        "params": {
+                            "access_token": "",
+                            "language": "en",
+                            "limit": null,
+                            "proximity": null,
+                            "origin": null,
+                            "navigation_profile": null,
+                            "time_deviation": null,
+                            "sar_type": null,
+                            "eta_type": null,
+                            "country": null,
+                            "types": null,
+                            "poi_category": null,
+                            "bbox": null,
+                            "radius": null,
+                            "user_proximity": null,
+                            "user_country": null,
+                            "session_token": null,
+                            "user_id": null,
+                            "cps_time_period": null,
+                            "cps_parking_type": null,
+                            "cps_raw": null,
+                            "debug": null,
+                            "rich_metadata_provider": null,
+                            "poi_category_exclusions": null,
+                            "original_query": null,
+                            "query_source": null,
+                            "nav_device_id": null,
+                            "nav_brand": null,
+                            "nav_engine": null,
+                            "nav_vehicle_classes": null,
+                            "nav_production_year": null,
+                            "nav_country_of_sale": null,
+                            "nav_head_unit_generation": null,
+                            "nav_offers_per_campaign_limit": null,
+                            "nav_offer_active_at_least_until": null,
+                            "nav_zoom_level": null,
+                            "nav_ad_formats": null,
+                            "show_closed_pois": null,
+                            "language_source": "request",
+                            "auto_complete": null,
+                            "ensure_results_per_category": null,
+                            "nav_bearing": null,
+                            "nav_layer": null,
+                            "nav_exclude": null,
+                            "nav_max_height": null,
+                            "nav_max_width": null,
+                            "nav_max_weight": null,
+                            "nav_avoid_maneuver_radius": null,
+                            "nav_include": null,
+                            "viewport": null,
+                            "viewport_ts": null,
+                            "attribute_sets": null
+                        },
+                        "uuid": "827d3953-a1e9-4d56-acd5-ec8eafa0ccdd",
+                        "feature_flags": {
+                            "search_sbs_loqate_addresses": false,
+                            "loqate_uk_data": false,
+                            "cps_data": false,
+                            "sbs_suggest_premium_data": false,
+                            "plugshare_data": false,
+                            "geocoder_permanent": false,
+                            "sbs_allow_global": false,
+                            "japan_poi": false,
+                            "anwb_data": false,
+                            "search_location_details": false,
+                            "api_ads_exchange": false,
+                            "search_poi_auto": false,
+                            "yandex_data": false,
+                            "osm_poi_data": false,
+                            "closed_poi_data": false,
+                            "google_poi_data": false,
+                            "brand_search_data": false,
+                            "search_endpoint": false,
+                            "phone_search": false,
+                            "japan_address_english": false,
+                            "mmi_search": false,
+                            "search_brand_as_category": false,
+                            "search_premium_routable_points": false,
+                            "search_query_rewrite": false,
+                            "search_parkopedia": false,
+                            "category_search_navigation": false
+                        },
+                        "edge_request_id": "Unknown",
+                        "elb_trace_id": "Unknown",
+                        "referer": null,
+                        "permanent": null,
+                        "search_mode": "suggest",
+                        "query_signals": {},
+                        "abtest_variants": null,
+                        "minimum_candidate_limit": null,
+                        "proximity_source": null,
+                        "account_id": null,
+                        "api_version": null
+                    },
+                    "carmen_feature": {
+                        "id": "address.6711702573649160",
+                        "type": "Feature",
+                        "place_type": [
+                            "address"
+                        ],
+                        "relevance": 0.721459,
+                        "address": "1320",
+                        "properties": {
+                            "mapbox_id": "dXJuOm1ieGFkcjpiZmUwYjM5My03MDRjLTQ2NzAtYjE4ZC1kM2Q1YzI4NDM4YzU",
+                            "accuracy": "rooftop",
+                            "address": null,
+                            "category": null,
+                            "maki": null,
+                            "landmark": null,
+                            "wikidata": null,
+                            "short_code": null,
+                            "telephone": null,
+                            "prominence": 0,
+                            "minIndexScore": 0,
+                            "maxIndexScore": 0
+                        },
+                        "routable_points": {
+                            "points": [
+                                {
+                                    "coordinates": [
+                                        -122.705257,
+                                        38.426483
+                                    ],
+                                    "note": "STD"
+                                }
+                            ]
+                        },
+                        "text": "De Turk Avenue",
+                        "place_name": "1320 De Turk Avenue, Santa Rosa, California 95404, United States",
+                        "matching_text": "Deturk Ave",
+                        "matching_place_name": "1320 Deturk Ave, Santa Rosa, California 95404, United States",
+                        "text_language": null,
+                        "place_name_language": null,
+                        "language": null,
+                        "language_language": null,
+                        "bbox": null,
+                        "center": [
+                            -122.70504,
+                            38.42656
+                        ],
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [
+                                -122.70504,
+                                38.42656
+                            ],
+                            "interpolated": null,
+                            "omitted": null
+                        },
+                        "context": [
+                            {
+                                "id": "neighborhood.601738476",
+                                "mapbox_id": "dXJuOm1ieHBsYzpJOTNNN0E",
+                                "text": "South Park",
+                                "short_code": null,
+                                "language": "en"
+                            },
+                            {
+                                "id": "postcode.317091564",
+                                "mapbox_id": "dXJuOm1ieHBsYzpFdVp1N0E",
+                                "text": "95404",
+                                "short_code": null,
+                                "language": null
+                            },
+                            {
+                                "id": "place.293398764",
+                                "mapbox_id": "dXJuOm1ieHBsYzpFWHpvN0E",
+                                "text": "Santa Rosa",
+                                "short_code": null,
+                                "language": "en"
+                            },
+                            {
+                                "id": "district.21612268",
+                                "mapbox_id": "dXJuOm1ieHBsYzpBVW5HN0E",
+                                "text": "Sonoma County",
+                                "short_code": null,
+                                "language": "en"
+                            },
+                            {
+                                "id": "region.419052",
+                                "mapbox_id": "dXJuOm1ieHBsYzpCbVRz",
+                                "text": "California",
+                                "short_code": "US-CA",
+                                "language": "en"
+                            },
+                            {
+                                "id": "country.8940",
+                                "mapbox_id": "dXJuOm1ieHBsYzpJdXc",
+                                "text": "United States",
+                                "short_code": "us",
+                                "language": "en"
+                            }
+                        ]
+                    },
+                    "yandex_poi_feature": null,
+                    "yandex_address_feature": null,
+                    "poi_feature": null,
+                    "loqate_find_item": null,
+                    "google_features": null,
+                    "applied_signals": null,
+                    "similarity": null,
+                    "spellcheck_debug": null,
+                    "dedup_info": null,
+                    "mmi_autosuggest_location": null
+                }
+            }
+        }
+    ],
+    "attribution": "\u00a9 2025 Mapbox and its suppliers. All rights reserved. Use of this data is subject to the Mapbox Terms of Service. (https://www.mapbox.com/about/maps/)",
+    "response_id": "dvOsuPxXi66rMTotPSVuv-BpZJ9xTHgOSiD6hHRJi7Vq6i3Lvv5WUiRwYu425V0SoilKDAqBJyGFr45NOtag4OUMx2_crifxzcs="
+}

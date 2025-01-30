@@ -1,114 +1,83 @@
 import json
 import requests
-import time
 import os
 from dotenv import load_dotenv
-
-# Load environment variables
+# Load environment variables from .env
 load_dotenv()
+# Ensure this is set in your .env
+MAPBOX_ACCESS_TOKEN = os.getenv('MAPBOX_ACCESS_TOKEN')
+# Mapbox /forward endpoint
+MAPBOX_FORWARD_URL = "https://api.mapbox.com/search/searchbox/v1/forward"
 
-GEOCODE_API_KEY = os.getenv('GEOCODE_API_KEY')
-GEOCODING_URL = "https://geocode.maps.co/search"
 
-# File paths
-INPUT_FILE = "data/addresses.json"
-OUTPUT_FILE = "data/address_geocode.json"
-FAILED_GEOCODE_FILE = "data/failed_geocode.json"
-
-def build_address(address_fields: list) -> str:
+def build_address(address_fields):
     """
-    Combine address fields into a single string.
+    Optionally combine multiple address fields (e.g. street, city, state, zip)
+    into one string. If you already have a single address string, you can skip this.
     """
     return ' '.join(field.strip() for field in address_fields if field)
 
 
-def geocode_address(address: str) -> dict | None:
+def geocode_address(address):
     """
-    Convert address to coordinates using the geocoding API.
+    Use Mapbox's Search Box API with auto_complete=true to convert an
+    address string into geographic coordinates and extract address components.
     """
+    print(f"Using Mapbox with auto_complete=true for: {address}")
+    params = {
+        "q": address,
+        "access_token": MAPBOX_ACCESS_TOKEN,
+        "limit": 1,            # Return just the top match
+        "language": "en",
+        "auto_complete": "true"
+    }
+
     try:
-        url = f"{GEOCODING_URL}?q={address}&api_key={GEOCODE_API_KEY}"
-        
-        response = requests.get(url)
+        response = requests.get(MAPBOX_FORWARD_URL, params=params)
         response.raise_for_status()
-        results = response.json()
-        
-        if results and len(results) > 0:
-            return {
-                'address': address,
-                'latitude': results[0]['lat'],
-                'longitude': results[0]['lon']
-            }
-        return None
-        
-    except Exception as e:
-        print(f"Error geocoding address '{address}': {str(e)}")
-        return None
+        data = response.json()
+        # Export data to JSON file
+        os.makedirs('data', exist_ok=True)
+        with open('data/address_data.json', 'w') as f:
+            json.dump(data, f, indent=4)
+        print(f"Data exported to data/address_data.json")
 
+        features = data.get("features", [])
+        if not features:
+            print(f"No match found for: {address}")
+            return None
 
-def process_address_list(output_file: str = OUTPUT_FILE) -> None:
-    """
-    Process a list of addresses from input JSON file and save geocoded results.
-    Also saves failed geocoding attempts to a separate file.
-    
-    Args:
-        output_file (str): Path to output JSON file for geocoded results
-    """
-    try:
-        # Read addresses from input file
-        with open(INPUT_FILE, 'r') as f:
-            address_data = json.load(f)
-        
-        geocoded_results = {
-            "total_addresses": 0,
-            "addresses": []
+        # Extract the first match's data
+        feature = features[0]
+        coords = feature["geometry"]["coordinates"]  # [longitude, latitude]
+        properties = feature["properties"]
+        context = properties.get("context", {})
+
+        return {
+            "address": address,
+            "corrected_address": properties.get("full_address"),
+            "latitude": coords[1],
+            "longitude": coords[0],
+            "region": context.get("region", {}).get("region_code"),
+            "postcode": context.get("postcode", {}).get("name"),
+            "district": context.get("district", {}).get("name"),
+            "city": context.get("place", {}).get("name"),
+            "neighborhood": context.get("neighborhood", {}).get("name"),
+            "street": context.get("street", {}).get("name")
         }
-        
-        failed_addresses = {
-            "total_failed": 0,
-            "addresses": []
-        }
-        
-        # Process each address
-        for address in address_data["addresses"]:
-            result = geocode_address(address)
-            if result:
-                geocoded_results["addresses"].append({
-                    "address": result["address"],
-                    "latitude": result["latitude"],
-                    "longitude": result["longitude"]
-                })
-                print(f"Successfully geocoded: {address}")
-            else:
-                failed_addresses["addresses"].append(address)
-                print(f"Failed to geocode: {address}")
-            
-            # Add a small delay to avoid hitting API rate limits
-            time.sleep(1)
-        
-        # Update total counts
-        geocoded_results["total_addresses"] = len(geocoded_results["addresses"])
-        failed_addresses["total_failed"] = len(failed_addresses["addresses"])
-        
-        # Save successful results
-        with open(output_file, 'w') as f:
-            json.dump(geocoded_results, f, indent=2)
-            
-        # Save failed addresses
-        with open(FAILED_GEOCODE_FILE, 'w') as f:
-            json.dump(failed_addresses, f, indent=2)
-            
-        print(f"\nProcessed {geocoded_results['total_addresses']} addresses")
-        print(f"Failed to process {failed_addresses['total_failed']} addresses")
-        
     except Exception as e:
-        print(f"Error processing address list: {str(e)}")
+        print(f"Error while geocoding with Mapbox: {str(e)}")
+        return None
 
 
-def main():
-    """Main function to process the address list."""
-    process_address_list()
-
-
+# ------------------- TEST A SINGLE ADDRESS -------------------
 if __name__ == "__main__":
-    main()
+    # slightly misspelled to test auto-complete
+    test_address = "1320 Dturk Av, Saa Ros, CA, 95404"
+    result = geocode_address(test_address)
+    if result:
+        print("\nGeocoded Address Details:")
+        for key, value in result.items():
+            print(f" - {key.title()}: {value}")
+    else:
+        print("Failed to geocode the address using Mapbox.")
