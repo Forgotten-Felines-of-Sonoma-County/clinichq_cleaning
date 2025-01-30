@@ -28,8 +28,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-07T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472"
+      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -59,8 +59,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-07T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472"
+      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -90,8 +90,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-12T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472"
+      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -121,8 +121,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-12T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472"
+      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -152,8 +152,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-14T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472"
+      "original_address": "Orchard Station Rd, Sebastopol, CA, 95472",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -183,8 +183,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-21T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "3200 Santa Rosa Avenue, North Star Mobile Home Park, Santa Rosa, CA, 95407"
+      "original_address": "3200 Santa Rosa Avenue, North Star Mobile Home Park, Santa Rosa, CA, 95407",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -214,8 +214,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-21T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "3200 Santa Rosa Avenue, North Star Mobile Home Park, Santa Rosa, CA, 95407"
+      "original_address": "3200 Santa Rosa Avenue, North Star Mobile Home Park, Santa Rosa, CA, 95407",
+      "error": "Geocoding failed"
     },
     {
       "cat": {
@@ -245,8 +245,8 @@
         "checkout_status": "Checked Out",
         "date": "2014-05-28T00:00:00"
       },
-      "reason": "No confidence score found",
-      "original_address": "3200 Santa Rosa Avenue, North Star Mobile Home Park, Santa Rosa, CA, 95407"
+      "original_address": "3200 Santa Rosa Avenue, North Star Mobile Home Park, Santa Rosa, CA, 95407",
+      "error": "Geocoding failed"
     }
   ]
 }
