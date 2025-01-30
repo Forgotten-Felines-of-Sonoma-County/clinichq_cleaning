@@ -30,7 +30,6 @@ def geocode_address(address):
         "language": "en",
         "auto_complete": "true",
         "proximity": "-122.720306,38.444660"
-
     }
 
     try:
@@ -86,14 +85,15 @@ def get_cached_address(address):
         return None
 
 
-def cache_address(address, geocoded_result):
+def cache_address(address, geocoded_result, error=None):
     """
-    Store successful geocoding result in Supabase cache
+    Store geocoding result in Supabase cache, including failed attempts
     """
     try:
         data = {
             'address': address,
             'geocoded_result': geocoded_result,
+            'error': error,
             'last_updated': 'now()'
         }
         supabase.table('geocoding_cache').upsert(data).execute()
@@ -138,9 +138,8 @@ def process_cat_data():
         address_cache = get_all_cached_addresses()
     except Exception as e:
         print(f"Failed to get cached addresses: {str(e)}")
-        address_cache = {}  # Start with empty cache if failed
+        address_cache = {}
 
-    # Track new successful geocoding results
     new_cache_entries = {}
     geocoded_data = {"records": []}
     failed_geocoding = {"records": []}
@@ -149,7 +148,11 @@ def process_cat_data():
     with open('data/processed_cat_data.json', 'r') as f:
         data = json.load(f)
 
-    for record in data["records"][:100]:
+    total_records = len(data["records"])
+    print(f"Processing {total_records} records...")
+
+    for index, record in enumerate(data["records"], 1):
+        print(f"Processing record {index}/{total_records}")
         try:
             cat = record["cat"]
             owner = record["owner"]
@@ -165,8 +168,11 @@ def process_cat_data():
                     geocoded_result = address_cache.get(cat_address)
                     if geocoded_result is None:
                         geocoded_result, reason = geocode_address(cat_address)
-                        if geocoded_result:  # Only cache successful results
-                            new_cache_entries[cat_address] = geocoded_result
+                        # Cache both successful and failed results
+                        new_cache_entries[cat_address] = {
+                            'result': geocoded_result,
+                            'error': reason if not geocoded_result else None
+                        }
 
                     if geocoded_result:
                         cat.update(geocoded_result)
@@ -182,7 +188,7 @@ def process_cat_data():
                             "owner": owner,
                             "appointment": appointment,
                             "original_address": cat_address,
-                            "error": "Geocoding failed"
+                            "error": reason
                         }
                         failed_geocoding["records"].append(failed_record)
                 except Exception as e:
