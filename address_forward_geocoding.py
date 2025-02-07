@@ -85,7 +85,7 @@ def get_cached_address(address):
         return None
 
 
-def cache_address(address, geocoded_result, error=None):
+def cache_address(address, geocoded_result, error=None, last_updated=None):
     """
     Store geocoding result in Supabase cache, including failed attempts
     """
@@ -94,7 +94,9 @@ def cache_address(address, geocoded_result, error=None):
             'address': address,
             'geocoded_result': geocoded_result,
             'error': error,
-            'last_updated': 'now()'
+            'last_updated': 'now()',
+            # Use provided last_updated or default to now
+            'created_at': last_updated if last_updated else 'now()'
         }
         supabase.table('geocoding_cache').upsert(data).execute()
     except Exception as e:
@@ -121,8 +123,11 @@ def batch_cache_addresses(address_results):
         data = [
             {
                 'address': address,
-                'geocoded_result': result,
-                'last_updated': 'now()'
+                'geocoded_result': result.get('result'),
+                'error': result.get('error'),
+                'last_updated': 'now()',
+                # Use provided last_updated or default to now
+                'created_at': result.get('last_updated', 'now()')
             }
             for address, result in address_results.items()
         ]
@@ -160,6 +165,8 @@ def process_cat_data():
 
             cat_address = cat.get("full_address")
             owner_address = owner.get("owner_address")
+            last_updated = cat.get("last_updated") or owner.get(
+                "last_updated")  # Get last_updated from record
 
             # Check if addresses are the same
             if cat_address == owner_address:
@@ -168,10 +175,11 @@ def process_cat_data():
                     geocoded_result = address_cache.get(cat_address)
                     if geocoded_result is None:
                         geocoded_result, reason = geocode_address(cat_address)
-                        # Cache both successful and failed results
+                        # Cache with last_updated date
                         new_cache_entries[cat_address] = {
                             'result': geocoded_result,
-                            'error': reason if not geocoded_result else None
+                            'error': reason if not geocoded_result else None,
+                            'last_updated': last_updated
                         }
 
                     if geocoded_result:

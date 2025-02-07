@@ -64,7 +64,7 @@ def geocode_address(address):
 
 
 if __name__ == "__main__":
-    address = "5340 Skylane Boulevard, Santa Rosa, Santa Rosa, CA, 95403"
+    address = "Asti Rd, 266697, Cloverdale, CA, 95425"
     result = geocode_address(address)
 
     if result:

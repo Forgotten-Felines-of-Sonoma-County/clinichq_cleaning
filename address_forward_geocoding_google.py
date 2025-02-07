@@ -78,7 +78,7 @@ def get_cached_address(address):
         return None
 
 
-def cache_address(address, geocoded_result, error=None):
+def cache_address(address, geocoded_result, error=None, last_updated=None):
     """
     Store geocoding result in Supabase cache.
     Updates existing record if found, otherwise inserts new record.
@@ -92,7 +92,8 @@ def cache_address(address, geocoded_result, error=None):
             'address': address,
             'geocoded_result': geocoded_result,
             'error': error,
-            'last_updated': 'now()'
+            'last_updated': 'now()',
+            'created_at': last_updated if last_updated else 'now()'
         }
 
         if existing.data:
@@ -111,8 +112,8 @@ def process_cat_data():
     geocoded_data = {"records": []}
     failed_geocoding = {"records": []}
 
-    # Read the failed geocoded cats data
-    with open('data/failed_geocoded_cats.json', 'r') as f:
+    # Read the processed cat data
+    with open('data/processed_cat_data.json', 'r') as f:
         data = json.load(f)
 
     total_records = len(data["records"])
