@@ -141,7 +141,7 @@ def cache_address(address, geocoded_result, error=None, last_updated=None):
         print(f"Error caching result: {str(e)}")
 
 
-def process_cat_data(limit=200):
+def process_cat_data():
     geocoded_data = {"records": []}
     failed_geocoding = {"records": []}
 
@@ -149,10 +149,10 @@ def process_cat_data(limit=200):
     with open('data/processed_cat_data.json', 'r') as f:
         data = json.load(f)
 
-    # Limit to first 200 records
-    records = data["records"][:limit]
+    # Process all records
+    records = data["records"]
     total_records = len(records)
-    print(f"Processing {total_records} records (limited to {limit})...")
+    print(f"Processing {total_records} records...")
 
     for index, record in enumerate(records, 1):
         print(f"Processing record {index}/{total_records}")
@@ -256,4 +256,4 @@ def process_cat_data(limit=200):
 
 
 if __name__ == "__main__":
-    process_cat_data(limit=200)
+    process_cat_data()
