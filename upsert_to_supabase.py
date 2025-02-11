@@ -21,7 +21,8 @@ supabase: Client = create_client(url, key)
 
 
 def load_processed_data():
-    with open('data/forward_geocoded_cat_data.json', 'r') as file:
+    """Load the processed data from the Google geocoded file"""
+    with open('data/google_geocoded_cat_data.json', 'r') as file:
         data = json.load(file)
         return data.get('records', [])
 
@@ -50,7 +51,7 @@ def upsert_owner(owner_data):
             .execute()\
             .data
 
-    # Create owner record with null handling
+    # Create owner record with updated geocoding fields
     owner_record = {
         'owner_first_name': owner_data.get('owner_first_name'),
         'owner_last_name': owner_data.get('owner_last_name'),
@@ -58,26 +59,24 @@ def upsert_owner(owner_data):
         'owner_home_phone': home_phone,
         'owner_address': owner_data.get('owner_address'),
         'last_updated': owner_data.get('last_updated'),
-        'city': owner_data.get('city'),
-        'region': owner_data.get('region'),
-        'street': owner_data.get('street'),
-        'district': owner_data.get('district'),
-        'latitude': owner_data.get('latitude'),
-        'postcode': owner_data.get('postcode'),
-        'longitude': owner_data.get('longitude'),
-        'confidence': owner_data.get('confidence'),
         'full_address': owner_data.get('full_address'),
-        'neighborhood': owner_data.get('neighborhood')
+        'latitude': owner_data.get('latitude'),
+        'longitude': owner_data.get('longitude'),
+        'state': owner_data.get('state'),  # Changed from region
+        'county': owner_data.get('county'),  # Added county
+        'postcode': owner_data.get('postcode'),
+        'city': owner_data.get('city'),
+        'street': owner_data.get('street'),
+        'street_number': owner_data.get('street_number')  # Added street_number
     }
 
     if existing_owner:
-        # If owner exists, use their ID for the upsert
         owner_id = existing_owner[0]['owner_id']
         owner_record['owner_id'] = owner_id
 
     result = supabase.table('owners').upsert(
         owner_record,
-        on_conflict='owner_id'  # Use the primary key for conflict resolution
+        on_conflict='owner_id'
     ).execute()
 
     return result.data[0]['owner_id']
@@ -97,15 +96,14 @@ def upsert_cat(cat_data, owner_id):
         'spayed_neutered': cat_data['spayed_neutered'],
         'full_address': cat_data['full_address'],
         'last_updated': cat_data['last_updated'],
-        'city': cat_data['city'],
-        'region': cat_data['region'],
-        'street': cat_data['street'],
-        'district': cat_data['district'],
         'latitude': cat_data['latitude'],
-        'postcode': cat_data['postcode'],
         'longitude': cat_data['longitude'],
-        'confidence': cat_data['confidence'],
-        'neighborhood': cat_data['neighborhood'],
+        'state': cat_data['state'],  # Changed from region
+        'county': cat_data['county'],  # Added county
+        'postcode': cat_data['postcode'],
+        'city': cat_data['city'],
+        'street': cat_data['street'],
+        'street_number': cat_data['street_number'],  # Added street_number
         'owner_id': owner_id
     }
 
@@ -186,5 +184,5 @@ if __name__ == "__main__":
         if process_record(record):
             successful += 1
 
-    print(f"Successfully processed {
-          successful} out of {total_records} records")
+    print(
+        f"Successfully processed {successful} out of {total_records} records")
