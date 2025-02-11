@@ -73,7 +73,26 @@ def get_cached_address(address):
     try:
         response = supabase.table('geocoding_cache').select(
             '*').eq('address', address).execute()
-        return response.data[0]['geocoded_result'] if response.data else None
+
+        if not response.data:
+            return None
+
+        cached = response.data[0]
+        if cached.get('error'):
+            return None
+
+        # Convert flat structure back to geocoding result format
+        return {
+            'full_address': cached.get('full_address'),
+            'latitude': cached.get('latitude'),
+            'longitude': cached.get('longitude'),
+            'state': cached.get('state'),
+            'county': cached.get('county'),
+            'postcode': cached.get('postcode'),
+            'city': cached.get('city'),
+            'street': cached.get('street'),
+            'street_number': cached.get('street_number')
+        }
     except Exception as e:
         print(f"Error retrieving from cache: {str(e)}")
         return None
@@ -91,11 +110,24 @@ def cache_address(address, geocoded_result, error=None, last_updated=None):
 
         data = {
             'address': address,
-            'geocoded_result': geocoded_result,
             'error': error,
             'last_updated': 'now()',
             'created_at': last_updated if last_updated else 'now()'
         }
+
+        # Add geocoded fields if result exists
+        if geocoded_result:
+            data.update({
+                'full_address': geocoded_result.get('full_address'),
+                'latitude': geocoded_result.get('latitude'),
+                'longitude': geocoded_result.get('longitude'),
+                'state': geocoded_result.get('state'),
+                'county': geocoded_result.get('county'),
+                'postcode': geocoded_result.get('postcode'),
+                'city': geocoded_result.get('city'),
+                'street': geocoded_result.get('street'),
+                'street_number': geocoded_result.get('street_number')
+            })
 
         if existing.data:
             # Update existing record
@@ -109,7 +141,7 @@ def cache_address(address, geocoded_result, error=None, last_updated=None):
         print(f"Error caching result: {str(e)}")
 
 
-def process_cat_data():
+def process_cat_data(limit=200):
     geocoded_data = {"records": []}
     failed_geocoding = {"records": []}
 
@@ -117,10 +149,12 @@ def process_cat_data():
     with open('data/processed_cat_data.json', 'r') as f:
         data = json.load(f)
 
-    total_records = len(data["records"])
-    print(f"Processing {total_records} previously failed records...")
+    # Limit to first 200 records
+    records = data["records"][:limit]
+    total_records = len(records)
+    print(f"Processing {total_records} records (limited to {limit})...")
 
-    for index, record in enumerate(data["records"], 1):
+    for index, record in enumerate(records, 1):
         print(f"Processing record {index}/{total_records}")
         try:
             cat = record["cat"]
@@ -222,4 +256,4 @@ def process_cat_data():
 
 
 if __name__ == "__main__":
-    process_cat_data()
+    process_cat_data(limit=200)
