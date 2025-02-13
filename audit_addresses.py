@@ -1,7 +1,8 @@
-import os
+import json
 import csv
-from dotenv import load_dotenv
 from supabase import create_client
+from dotenv import load_dotenv
+import os
 
 # Load environment variables from .env
 load_dotenv()
@@ -12,43 +13,53 @@ SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-def export_addresses_to_csv():
+def audit_addresses():
     """
-    Fetch all addresses from geocoding_cache and export them to a CSV
-    with original and geocoded addresses for comparison
+    Create an audit CSV comparing original addresses with geocoded results
     """
-    try:
-        # Fetch all records from geocoding_cache
-        response = supabase.table('geocoding_cache').select('*').execute()
+    # Read the processed cat data
+    with open('data/processed_cat_data.json', 'r') as f:
+        data = json.load(f)
 
-        if not response.data:
-            print("No records found in geocoding_cache")
-            return
+    # Get all cached addresses
+    cached_addresses = supabase.table('geocoding_cache').select('*').execute()
+    cache_dict = {item['address']: item for item in cached_addresses.data}
 
-        # Prepare CSV file
-        # Create data directory if it doesn't exist
-        os.makedirs('data', exist_ok=True)
-        output_file = 'data/address_audit.csv'
-        with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['original_address', 'new_address', 'error']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    # Use a dictionary to store unique addresses
+    unique_addresses = {}
 
+    for record in data["records"]:
+        cat = record["cat"]
+        owner = record["owner"]
+
+        original_address = cat.get("full_address")
+        cached_result = cache_dict.get(original_address)
+
+        if cached_result and original_address not in unique_addresses:
+            unique_addresses[original_address] = {
+                'original_address': original_address,
+                'geocoded_address': cached_result.get('full_address', ''),
+                'owner_first_name': owner.get('owner_first_name', ''),
+                'owner_last_name': owner.get('owner_last_name', ''),
+                'cell_phone': owner.get('owner_cell_phone', ''),
+                'home_phone': owner.get('owner_home_phone', '')
+            }
+
+    # Convert dictionary values to list for CSV writing
+    audit_rows = list(unique_addresses.values())
+
+    # Write to CSV
+    if audit_rows:
+        fieldnames = audit_rows[0].keys()
+        with open('data/address_audit.csv', 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
+            writer.writerows(audit_rows)
 
-            # Write each record to CSV
-            for row in response.data:
-                writer.writerow({
-                    'original_address': row.get('address', ''),
-                    'new_address': row.get('full_address', ''),
-                    'error': row.get('error', '')
-                })
-
-        print(
-            f"Successfully exported {len(response.data)} records to {output_file}")
-
-    except Exception as e:
-        print(f"Error exporting addresses: {str(e)}")
+        print(f"Created audit CSV with {len(audit_rows)} unique addresses")
+    else:
+        print("No records found to audit")
 
 
 if __name__ == "__main__":
-    export_addresses_to_csv()
+    audit_addresses()
