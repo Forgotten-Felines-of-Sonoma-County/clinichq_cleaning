@@ -172,10 +172,9 @@ def process_cat_data():
                     geocoded_result = cached_result
                 else:
                     geocoded_result, error = geocode_address(cat_address)
+                    # Only cache if we got a valid result
                     if geocoded_result:
                         cache_address(cat_address, geocoded_result)
-                    else:
-                        cache_address(cat_address, None, error)
 
                 if geocoded_result:
                     cat.update(geocoded_result)
@@ -204,8 +203,10 @@ def process_cat_data():
                         cat_result = cached_cat
                     else:
                         cat_result, cat_error = geocode_address(cat_address)
+                        # Only cache if we got a valid result
                         if cat_result:
                             cache_address(cat_address, cat_result)
+                        # No caching for failed results
 
                 # Process owner address
                 if owner_address:
@@ -215,8 +216,10 @@ def process_cat_data():
                     else:
                         owner_result, owner_error = geocode_address(
                             owner_address)
+                        # Only cache if we got a valid result
                         if owner_result:
                             cache_address(owner_address, owner_result)
+                        # No caching for failed results
 
                 if cat_result and owner_result:
                     cat.update(cat_result)
