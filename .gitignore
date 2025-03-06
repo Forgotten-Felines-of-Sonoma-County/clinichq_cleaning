@@ -1,6 +1,10 @@
 .env
 venv/
-data/address_audit
-data/
-.history/
-.vscode/ # Optional: if you also want to ignore .vscode
+*/address_audit
+*/dirty_cats.csv
+*/dirty_cats.json
+*/failed_geocoding_cats.json
+*/failed_geocoded_cats.json
+*/google_failed_geocoded_cats.json
+*.history/
+*.vscode/ # Optional: if you also want to ignore .vscode
