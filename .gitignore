@@ -2,3 +2,5 @@
 venv/
 data/address_audit
 data/
+.history/
+.vscode/ # Optional: if you also want to ignore .vscode
