@@ -155,7 +155,7 @@ def process_clinic_data():
         # Format address with commas
         full_address = ", ".join(filter(None, [
             data.get('ownerAddressLine1'),
-            data.get('ownerAddressLine2'),
+            # data.get('ownerAddressLine2'),  # TODO: remove me
             data.get('ownerCity'),
             data.get('ownerState'),
             data.get('ownerZip')
