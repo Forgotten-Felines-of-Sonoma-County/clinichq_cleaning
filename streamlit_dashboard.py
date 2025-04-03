@@ -20,12 +20,32 @@ st.set_page_config(
 load_dotenv()
 
 # Initialize Supabase client
-@st.cache_resource
+# Initialize Supabase client with better error handling
 def init_connection():
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
-    return create_client(url, key)
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        
+        if not url or not key:
+            st.error("Supabase credentials not found. Please check your secrets configuration.")
+            st.stop()
+            
+        return create_client(url, key)
+    except KeyError:
+        st.error("""
+        Missing Supabase credentials. Please configure:
+        1. Go to your Streamlit app settings
+        2. Navigate to 'Secrets' section
+        3. Add the following secrets:
+           - SUPABASE_URL
+           - SUPABASE_KEY
+        """)
+        st.stop()
+    except Exception as e:
+        st.error(f"Failed to connect to Supabase. Please check your credentials and try again.")
+        st.stop()
 
+# Use the connection
 supabase = init_connection()
 
 # Function to fetch all TNR appointments with pagination
