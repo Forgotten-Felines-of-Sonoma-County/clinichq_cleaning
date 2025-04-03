@@ -11,7 +11,7 @@ from plotly.subplots import make_subplots
 
 # Page configuration
 st.set_page_config(
-    page_title="TNR Program Dashboard",
+    page_title="Forgotten Felines of Sonoma County Dashboard",
     page_icon="🐈",
     layout="wide"
 )
@@ -87,7 +87,7 @@ def fetch_all_cats():
 # Main app
 def main():
     # Header
-    st.title("🐈 TNR Program Dashboard")
+    st.title("🐈 Forgotten Felines TNR Dashboard")
     st.markdown("Trap-Neuter-Return program metrics for Forgotten Felines of Sonoma County (data taken via ClincHQ)")
     
     # Load data with loading spinner
@@ -134,7 +134,7 @@ def main():
             y=sorted_data['cumulative_count'],
             mode='lines',
             name='Cumulative TNR',
-            line=dict(color='#2ecc71', width=2),
+            line=dict(color='#3498db', width=2),
             hovertemplate='Date: %{x}<br>Total TNR: %{y}<extra></extra>'
         )
     )
@@ -154,33 +154,62 @@ def main():
     
     
     
-    # Age Distribution - Interactive
+    # Age Distribution at TNR
     st.subheader("Age Distribution at TNR")
     
     # Prepare age data
     unique_cats = tnr_data.sort_values('date').groupby('microchip').first()
     unique_cats['total_months'] = unique_cats['age_years'] * 12 + unique_cats['age_months']
     
-    # Create interactive histogram
-    fig_age = go.Figure()
-    fig_age.add_trace(
-        go.Histogram(
-            x=unique_cats['total_months'],
-            nbinsx=30,
-            marker_color='#3498db',
-            hovertemplate='Age: %{x:.1f} months<br>Count: %{y}<extra></extra>'
-        )
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Create histogram
+    sns.histplot(data=unique_cats, 
+                x='total_months',
+                bins=40,  # Adjust number of bins
+                color='#3498db',  # Match the blue color scheme
+                ax=ax)
+    
+    # Set x-axis limit to 0-200 months
+    ax.set_xlim(0, 200)
+    
+    # Customize the plot
+    ax.set_title('Age Distribution of Cats at Time of TNR', pad=20)
+    ax.set_xlabel('Age (Months)')
+    ax.set_ylabel('Number of Cats')
+    
+    # Add grid for better readability
+    ax.grid(True, linestyle='--', alpha=0.7)
+    
+    # Calculate and add statistics for cats within visible range (0-200 months)
+    visible_data = unique_cats[unique_cats['total_months'] <= 200]
+    stats = visible_data['total_months'].describe()
+    
+    # Add text annotations for key statistics
+    annotation_text = (
+        f"Median Age: {stats['50%']:.1f} months\n"
+        f"Mean Age: {stats['mean']:.1f} months\n"
+        f"Cats shown: {len(visible_data):,} ({len(visible_data)/len(unique_cats)*100:.1f}%)"
     )
     
-    fig_age.update_layout(
-        xaxis_title='Age (months)',
-        yaxis_title='Number of Cats',
-        height=500,
-        showlegend=False,
-        bargap=0.1
-    )
+    # Add text box with statistics
+    plt.text(0.95, 0.95, 
+             annotation_text,
+             transform=ax.transAxes,
+             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'),
+             va='top',
+             ha='right')
     
-    st.plotly_chart(fig_age, use_container_width=True)
+    plt.tight_layout()
+    st.pyplot(fig)
+    
+    # Add explanatory text
+    st.markdown("""
+    **Note:** This visualization shows the age distribution of cats at their time of TNR, limited to 0-200 months 
+    (approximately 0-16.7 years) for better visibility of the main distribution. Some cats older than this range 
+    may not be shown in the graph.
+    """)
     
     # Monthly Trends - New Interactive Chart
     st.subheader("Monthly TNR Trends")
@@ -239,7 +268,7 @@ def main():
     # Create horizontal bar plot with blue color
     sns.barplot(x=top_10_postcodes.values, 
                 y=top_10_postcodes.index, 
-                color='#3498db',  # Changed to blue
+                palette=sns.color_palette('mako')[:-1],  # Changed to blue
                 ax=ax)
     
     # Customize the plot
@@ -283,7 +312,7 @@ def main():
     # Create horizontal bar plot with blue color
     sns.barplot(x=year_top_10_postcodes.values, 
                 y=year_top_10_postcodes.index, 
-                color='#3498db',  # Changed to blue
+                palette=sns.color_palette('mako')[::-1], 
                 ax=ax)
     
     # Customize the plot
