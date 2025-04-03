@@ -19,30 +19,45 @@ st.set_page_config(
 # Load environment variables
 load_dotenv()
 
-# Initialize Supabase client
 # Initialize Supabase client with better error handling
 def init_connection():
     try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
+        # First try to get credentials from Streamlit secrets
+        try:
+            url = st.secrets["SUPABASE_URL"]
+            key = st.secrets["SUPABASE_KEY"]
+        except:
+            # If not in Streamlit Cloud, try local environment variables
+            load_dotenv()  # Load local .env file
+            url = os.getenv("SUPABASE_URL")
+            key = os.getenv("SUPABASE_KEY")
         
         if not url or not key:
-            st.error("Supabase credentials not found. Please check your secrets configuration.")
+            st.error("""
+            Supabase credentials not found. Please ensure you have either:
+            
+            For local development:
+            1. A .env file in your project root with:
+               SUPABASE_URL=your-supabase-url
+               SUPABASE_KEY=your-supabase-key
+               
+            OR
+            
+            For Streamlit Cloud:
+            1. Configured secrets in your Streamlit dashboard
+            """)
             st.stop()
             
         return create_client(url, key)
-    except KeyError:
-        st.error("""
-        Missing Supabase credentials. Please configure:
-        1. Go to your Streamlit app settings
-        2. Navigate to 'Secrets' section
-        3. Add the following secrets:
-           - SUPABASE_URL
-           - SUPABASE_KEY
-        """)
-        st.stop()
     except Exception as e:
-        st.error(f"Failed to connect to Supabase. Please check your credentials and try again.")
+        st.error(f"""
+        Failed to connect to Supabase. Please check:
+        1. Your .env file exists and has the correct credentials
+        2. The credentials are properly formatted (no quotes needed)
+        3. You're using the correct Supabase service_role key
+        
+        Error details: {str(e)}
+        """)
         st.stop()
 
 # Use the connection
