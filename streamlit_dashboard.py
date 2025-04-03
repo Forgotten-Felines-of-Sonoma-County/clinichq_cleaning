@@ -226,24 +226,24 @@ def main():
     
     
 
-# Top Neighborhoods visualization
+# First (all-time) Top 10 Neighborhoods visualization
     st.subheader("Top 10 Neighborhoods by TNR Count")
     
-    # Get top 10 neighborhoods and sort by count (ascending=False for highest at top)
+    # Get top 10 neighborhoods and sort
     tnr_by_postcode = tnr_data.groupby('postcode').size()
-    top_10_postcodes = tnr_by_postcode.nlargest(10).sort_values(ascending=False)  # Changed to False
+    top_10_postcodes = tnr_by_postcode.nlargest(10).sort_values(ascending=False)
     
     # Create the visualization
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    # Create horizontal bar plot
+    # Create horizontal bar plot with blue color
     sns.barplot(x=top_10_postcodes.values, 
                 y=top_10_postcodes.index, 
-                palette='viridis',
+                color='#3498db',  # Changed to blue
                 ax=ax)
     
     # Customize the plot
-    ax.set_title('Top 10 Neighborhoods by TNR Count (All Time)', pad=20)
+    ax.set_title('Top 10 Neighborhoods by TNR Count', pad=20)
     ax.set_xlabel('Number of TNR Procedures')
     ax.set_ylabel('Postcode')
     
@@ -253,8 +253,8 @@ def main():
     
     plt.tight_layout()
     st.pyplot(fig)
-    
-    
+
+    # Second (yearly) Top 10 Neighborhoods visualization
     st.subheader("Top 10 Neighborhoods by TNR Count (By Year)")
     
     # Get min and max years from the data
@@ -262,13 +262,12 @@ def main():
     min_year = tnr_data['year'].min()
     max_year = tnr_data['year'].max()
     
-    # Create year selector with radio buttons
+    # Create year selector with dropdown
     years_list = list(range(int(min_year), int(max_year) + 1))
-    selected_year = st.radio(
+    selected_year = st.selectbox(
         "Select Year",
         years_list,
-        horizontal=True,
-        index=len(years_list) - 1  # Set default to last (most recent) year
+        index=len(years_list) - 1  # Default to most recent year
     )
     
     # Filter data for selected year
@@ -281,10 +280,10 @@ def main():
     # Create the visualization
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    # Create horizontal bar plot
+    # Create horizontal bar plot with blue color
     sns.barplot(x=year_top_10_postcodes.values, 
                 y=year_top_10_postcodes.index, 
-                palette='viridis',
+                color='#3498db',  # Changed to blue
                 ax=ax)
     
     # Customize the plot
@@ -356,8 +355,6 @@ def main():
         st.download_button(
             label="Download TNR Data as CSV",
             data=csv,
-            file_name="tnr_data.csv",
-            mime="text/csv"
         )
 
 
