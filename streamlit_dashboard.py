@@ -82,12 +82,13 @@ def fetch_all_tnr_appointments():
             
         if len(batch_df) > 0:
             microchips = batch_df['microchip'].unique()
-            # Add age columns to the cats table select
+            # Ensure last_updated is included
             cats_response = supabase.table('cats').select(
                 'microchip',
                 'postcode',
                 'age_years',
-                'age_months'
+                'age_months',
+                'last_updated'  # Include last_updated
             ).in_('microchip', microchips).execute()
             
             cats_df = pd.DataFrame(cats_response.data)
@@ -134,7 +135,7 @@ def main():
     tnr_data['date'] = pd.to_datetime(tnr_data['date'], utc=True)
     
     # After loading data and before metrics row
-    avg_years, avg_months = calculate_average_age(tnr_data)
+    avg_years, avg_months = calculate_age_at_tnr(tnr_data, cats_df)
     
     # Update metrics row to include average age
     col1, col2, col3, col4 = st.columns(4)
@@ -190,61 +191,75 @@ def main():
     
     
     # Age Distribution at TNR
-    st.subheader("Age Distribution at TNR")
+    st.subheader("Age Distribution at Time of TNR")
     
-    # Prepare age data
-    unique_cats = tnr_data.sort_values('date').groupby('microchip').first()
-    unique_cats['total_months'] = unique_cats['age_years'] * 12 + unique_cats['age_months']
+    # Prepare the data
+    age_dist_data = prepare_age_distribution_data(tnr_data)
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # Create age distribution counts
+    age_counts = age_dist_data['age_at_tnr_months'].value_counts().reset_index()
+    age_counts.columns = ['age_month', 'count']
+    age_counts = age_counts.sort_values('age_month')
     
-    # Create histogram
-    sns.histplot(data=unique_cats, 
-                x='total_months',
-                bins=40,  # Adjust number of bins
-                color='#3498db',  # Match the blue color scheme
-                ax=ax)
+    # Convert months to years and months for display
+    age_counts['years'] = age_counts['age_month'] // 12
+    age_counts['months'] = age_counts['age_month'] % 12
+    age_counts['age_label'] = age_counts.apply(lambda x: f"{x['years']}y {x['months']}m", axis=1)
     
-    # Set x-axis limit to 0-200 months
-    ax.set_xlim(0, 200)
-    
-    # Customize the plot
-    ax.set_title('Age Distribution of Cats at Time of TNR', pad=20)
-    ax.set_xlabel('Age (Months)')
-    ax.set_ylabel('Number of Cats')
-    
-    # Add grid for better readability
-    ax.grid(True, linestyle='--', alpha=0.7)
-    
-    # Calculate and add statistics for cats within visible range (0-200 months)
-    visible_data = unique_cats[unique_cats['total_months'] <= 200]
-    stats = visible_data['total_months'].describe()
-    
-    # Add text annotations for key statistics
-    annotation_text = (
-        f"Median Age: {stats['50%']:.1f} months\n"
-        f"Mean Age: {stats['mean']:.1f} months\n"
-        f"Cats shown: {len(visible_data):,} ({len(visible_data)/len(unique_cats)*100:.1f}%)"
+    # Create interactive histogram
+    fig = px.bar(
+        age_counts, 
+        x='age_month',
+        y='count',
+        labels={'age_month': 'Age (months)', 'count': 'Number of Cats'},
+        color='count',
+        color_continuous_scale='Blues',
+        hover_data=['age_label', 'count']
     )
     
-    # Add text box with statistics
-    plt.text(0.95, 0.95, 
-             annotation_text,
-             transform=ax.transAxes,
-             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'),
-             va='top',
-             ha='right')
+    # Customize hover template
+    fig.update_traces(
+        hovertemplate='<b>Age:</b> %{customdata[0]}<br><b>Count:</b> %{y}<extra></extra>'
+    )
     
-    plt.tight_layout()
-    st.pyplot(fig)
+    # Set layout with x-axis limit of 200 months
+    fig.update_layout(
+        xaxis_title='Age (months)',
+        yaxis_title='Number of Cats',
+        height=500,
+        xaxis=dict(
+            range=[0, 200],  # Set x-axis limit to 200 months
+            tickmode='linear',
+            tick0=0,
+            dtick=12,  # Major ticks every 12 months (1 year)
+            ticktext=[f"{i}y" for i in range(0, 17)],  # 0 to 16 years (200 months is ~16.7 years)
+            tickvals=[i*12 for i in range(0, 17)]
+        )
+    )
     
-    # Add explanatory text
+    # Add vertical lines every year for better readability (up to 16 years)
+    for i in range(1, 17):
+        fig.add_shape(
+            type="line",
+            x0=i*12, x1=i*12,
+            y0=0, y1=1,
+            yref="paper",
+            line=dict(color="gray", width=1, dash="dot")
+        )
+    
+    # Add note about limited x-axis
     st.markdown("""
-    **Note:** This visualization shows the age distribution of cats at their time of TNR, limited to 0-200 months 
-    (approximately 0-16.7 years) for better visibility of the main distribution. Some cats older than this range 
-    may not be shown in the graph.
+    **Note:** The chart displays ages up to 200 months (~16.7 years) for better visibility. 
+    Some older cats may not be shown on this chart but are included in the statistical calculations.
     """)
+    
+    # Add statistics for cats beyond the visible range
+    cats_beyond_range = len(age_dist_data[age_dist_data['age_at_tnr_months'] > 200])
+    if cats_beyond_range > 0:
+        st.markdown(f"*There are {cats_beyond_range} cats older than 200 months not displayed on this chart.*")
+    
+    # Show the plot
+    st.plotly_chart(fig, use_container_width=True)
     
     # Monthly Trends - New Interactive Chart
     st.subheader("Monthly TNR Trends")
@@ -290,127 +305,110 @@ def main():
     
     
 
-# First (all-time) Top 10 Neighborhoods visualization
+    # Merged Top 10 Neighborhoods Visualization with All Time option
     st.subheader("Top 10 Neighborhoods by TNR Count")
-    
-    # Get top 10 neighborhoods and sort
-    tnr_by_postcode = tnr_data.groupby('postcode').size()
-    top_10_postcodes = tnr_by_postcode.nlargest(10).sort_values(ascending=False)
-    
-    # Create the visualization
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Create horizontal bar plot with blue color
-    sns.barplot(x=top_10_postcodes.values, 
-                y=top_10_postcodes.index, 
-                palette=sns.color_palette('mako')[:-1],  # Changed to blue
-                ax=ax)
-    
-    # Customize the plot
-    ax.set_title('Top 10 Neighborhoods by TNR Count', pad=20)
-    ax.set_xlabel('Number of TNR Procedures')
-    ax.set_ylabel('Postcode')
-    
-    # Add value labels on the bars
-    for i, v in enumerate(top_10_postcodes.values):
-        ax.text(v, i, f' {int(v)}', va='center')
-    
-    plt.tight_layout()
-    st.pyplot(fig)
 
-    # Second (yearly) Top 10 Neighborhoods visualization
-    st.subheader("Top 10 Neighborhoods by TNR Count (By Year)")
-    
     # Get min and max years from the data
     tnr_data['year'] = tnr_data['date'].dt.year
     min_year = tnr_data['year'].min()
     max_year = tnr_data['year'].max()
-    
-    # Create year selector with dropdown
-    years_list = list(range(int(min_year), int(max_year) + 1))
-    selected_year = st.selectbox(
-        "Select Year",
-        years_list,
-        index=len(years_list) - 1  # Default to most recent year
+
+    # Create year selector with dropdown including "All Time" option
+    years_list = ["All Time"] + list(range(int(max_year), int(min_year) - 1, -1))  # Descending order with All Time first
+    selected_period = st.selectbox(
+        "Select Time Period",
+     years_list,
+        index=0  # Default to "All Time"
     )
-    
-    # Filter data for selected year
-    year_data = tnr_data[tnr_data['year'] == selected_year]
-    
-    # Get top 10 neighborhoods for selected year
-    year_tnr_by_postcode = year_data.groupby('postcode').size()
-    year_top_10_postcodes = year_tnr_by_postcode.nlargest(10).sort_values(ascending=False)
-    
-    # Create the visualization
+
+# Filter data based on selection
+    if selected_period == "All Time":
+        filtered_data = tnr_data.copy()
+        period_title = "All Time"
+        comparison_year = max_year  # Use the most recent year for comparison
+    else:
+        filtered_data = tnr_data[tnr_data['year'] == selected_period]
+        period_title = str(selected_period)
+        comparison_year = selected_period
+
+# Get top 10 neighborhoods for selected period
+    period_tnr_by_postcode = filtered_data.groupby('postcode').size()
+    period_top_10_postcodes = period_tnr_by_postcode.nlargest(10).sort_values(ascending=False)
+
+# Create the visualization
     fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Create horizontal bar plot with blue color
-    sns.barplot(x=year_top_10_postcodes.values, 
-                y=year_top_10_postcodes.index, 
-                palette=sns.color_palette('mako')[::-1], 
-                ax=ax)
-    
-    # Customize the plot
-    ax.set_title(f'Top 10 Neighborhoods by TNR Count ({selected_year})', pad=20)
+
+# Create horizontal bar plot with blue color palette
+    sns.barplot(x=period_top_10_postcodes.values, 
+            y=period_top_10_postcodes.index, 
+            palette=sns.color_palette('mako')[::-1], 
+            ax=ax)
+
+# Customize the plot
+    ax.set_title(f'Top 10 Neighborhoods by TNR Count ({period_title})', pad=20)
     ax.set_xlabel('Number of TNR Procedures')
     ax.set_ylabel('Postcode')
-    
-    # Add value labels on the bars
-    for i, v in enumerate(year_top_10_postcodes.values):
+
+# Add value labels on the bars
+    for i, v in enumerate(period_top_10_postcodes.values):
         ax.text(v, i, f' {int(v)}', va='center')
-    
+
     plt.tight_layout()
     st.pyplot(fig)
-    
-    # Add year statistics
-    total_year_procedures = len(year_data)
-    year_unique_cats = len(year_data['microchip'].unique())
-    
-    # Create three columns for metrics
+
+# Calculate statistics
+    total_period_procedures = len(filtered_data)
+    period_unique_cats = len(filtered_data['microchip'].unique())
+
+# Display top neighborhood safely (check if we have data first)
+    top_neighborhood = period_top_10_postcodes.index[0] if len(period_top_10_postcodes) > 0 else "N/A"
+    top_count = int(period_top_10_postcodes.values[0]) if len(period_top_10_postcodes) > 0 else 0
+
+# Create three columns for metrics
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric(
-            f"Total TNR Procedures ({selected_year})",
-            f"{total_year_procedures:,}"
-        )
-    
+        f"Total TNR Procedures ({period_title})",
+        f"{total_period_procedures:,}"
+    )
+
     with col2:
         st.metric(
-            f"Unique Cats Altered ({selected_year})",
-            f"{year_unique_cats:,}"
-        )
-    
+        f"Unique Cats Altered ({period_title})",
+        f"{period_unique_cats:,}"
+    )
+
     with col3:
         st.metric(
-            "Top Neighborhood",
-            f"{year_top_10_postcodes.index[0]}",
-            f"{int(year_top_10_postcodes.values[0])} procedures"
-        )
-    
-    # Add year-over-year comparison if not earliest year
-    if selected_year > min_year:
-        st.subheader("Year-over-Year Comparison")
+        "Top Neighborhood",
+        f"{top_neighborhood}",
+        f"{top_count} procedures"
+    )
+
+# Add year-over-year comparison ONLY if a specific year is selected (not All Time)
+    if selected_period != "All Time" and selected_period > min_year:
+        st.subheader("Year-over-Year Comparison") 
         
         # Get previous year data
-        prev_year_data = tnr_data[tnr_data['year'] == (selected_year - 1)]
+        prev_year_data = tnr_data[tnr_data['year'] == (selected_period - 1)]
         prev_year_tnr = prev_year_data.groupby('postcode').size()
         
         # Calculate changes
-        yoy_change = total_year_procedures - len(prev_year_data)
+        yoy_change = total_period_procedures - len(prev_year_data)
         yoy_percent = (yoy_change / len(prev_year_data) * 100) if len(prev_year_data) > 0 else 0
         
-        st.write(f"Change from {selected_year-1}: {yoy_change:+,} procedures ({yoy_percent:+.1f}%)")
+        st.write(f"Change from {selected_period-1}: {yoy_change:+,} procedures ({yoy_percent:+.1f}%)")
         
         # Show neighborhood changes
         prev_top_10 = set(prev_year_tnr.nlargest(10).index)
-        current_top_10 = set(year_top_10_postcodes.index)
+        current_top_10 = set(period_top_10_postcodes.index)
         
         new_to_top_10 = current_top_10 - prev_top_10
         if new_to_top_10:
             st.write("📈 **New to Top 10 this year:**")
             for postcode in new_to_top_10:
-                st.write(f"- Postcode {postcode}: {year_tnr_by_postcode[postcode]} TNR procedures")
+                st.write(f"- Postcode {postcode}: {period_tnr_by_postcode[postcode]} TNR procedures")
 
     # Data Download Section
     st.subheader("Download Data")
@@ -422,21 +420,62 @@ def main():
         )
 
 
-def calculate_average_age(df):
-    # Convert years and months to total months
-    df['total_months'] = (df['age_years'] * 12 + df['age_months']).fillna(0)
+def calculate_age_at_tnr(appointments_df, cats_df):
+    # Merge appointments with cats data on microchip
+    merged_df = pd.merge(appointments_df, cats_df, on='microchip', how='left')
+    
+    # Convert dates to datetime
+    merged_df['date'] = pd.to_datetime(merged_df['date'], utc=True)
+    merged_df['last_updated'] = pd.to_datetime(merged_df['last_updated'], utc=True)
+    
+    # Calculate age at last_updated in months
+    merged_df['age_at_last_update_months'] = (merged_df['age_years'].fillna(0) * 12) + merged_df['age_months'].fillna(0)
+    
+    # Calculate the difference in months between last_updated and TNR date
+    merged_df['months_since_last_update'] = (merged_df['date'] - merged_df['last_updated']).dt.days // 30
+    
+    # Calculate age at TNR
+    merged_df['age_at_tnr_months'] = merged_df['age_at_last_update_months'] + merged_df['months_since_last_update']
     
     # Get unique cats (using first TNR appointment for each cat)
-    unique_cats = df.sort_values('date').groupby('microchip').first()
+    unique_cats = merged_df.sort_values('date').groupby('microchip').first()
     
     # Calculate average age in months
-    avg_months = unique_cats['total_months'].mean()
+    avg_months = unique_cats['age_at_tnr_months'].mean()
     
     # Convert back to years and months
     avg_years = int(avg_months // 12)
     avg_remaining_months = round(avg_months % 12, 1)
     
     return avg_years, avg_remaining_months
+
+# Calculate age at TNR for the interactive graph
+def prepare_age_distribution_data(tnr_data):
+    df = tnr_data.copy()
+    
+    # Ensure date columns are datetime
+    df['date'] = pd.to_datetime(df['date'])
+    df['last_updated'] = pd.to_datetime(df['last_updated'])
+    
+    # Calculate current age in months
+    df['current_age_months'] = (df['age_years'].fillna(0) * 12) + df['age_months'].fillna(0)
+    
+    # Calculate how many months have passed since TNR
+    df['months_since_tnr'] = (df['last_updated'] - df['date']).dt.days / 30.44
+    
+    # The age at TNR is the current age minus months since TNR
+    df['age_at_tnr_months'] = df['current_age_months'] - df['months_since_tnr']
+    
+    # Filter out any negative ages or other anomalies
+    df = df[df['age_at_tnr_months'] >= 0]
+    
+    # Round to nearest month for binning
+    df['age_at_tnr_months'] = df['age_at_tnr_months'].round().astype(int)
+    
+    # For each unique cat, use the earliest TNR record
+    df_unique = df.sort_values('date').groupby('microchip').first().reset_index()
+    
+    return df_unique
 
 if __name__ == "__main__":
     main() 
