@@ -135,7 +135,7 @@ def main():
     tnr_data['date'] = pd.to_datetime(tnr_data['date'], utc=True)
     
     # After loading data and before metrics row
-    avg_years, avg_months = calculate_age_at_tnr(tnr_data, cats_df)
+    avg_years, avg_months, age_data = calculate_age_at_tnr(tnr_data)
     
     # Update metrics row to include average age
     col1, col2, col3, col4 = st.columns(4)
@@ -153,7 +153,7 @@ def main():
     with col4:
         st.metric("Average Age at TNR", 
                  f"{avg_years}y {avg_months}m",
-                 help="Average age of cats when they undergo TNR")
+                 help="Average age of cats at the time they underwent TNR, calculated from current age")
     
     # TNR Progress Over Time - Interactive
     st.subheader("TNR Progress Over Time")
@@ -212,6 +212,7 @@ def main():
         x='age_month',
         y='count',
         labels={'age_month': 'Age (months)', 'count': 'Number of Cats'},
+        title='Age Distribution at Time of TNR',
         color='count',
         color_continuous_scale='Blues',
         hover_data=['age_label', 'count']
@@ -237,7 +238,7 @@ def main():
         )
     )
     
-    # Add vertical lines every year for better readability (up to 16 years)
+    # Add vertical lines every year for better readability
     for i in range(1, 17):
         fig.add_shape(
             type="line",
@@ -247,16 +248,15 @@ def main():
             line=dict(color="gray", width=1, dash="dot")
         )
     
-    # Add note about limited x-axis
-    st.markdown("""
-    **Note:** The chart displays ages up to 200 months (~16.7 years) for better visibility. 
-    Some older cats may not be shown on this chart but are included in the statistical calculations.
+    # Add more statistics with 1-3 year age group
+    st.markdown(f"""
+    **Age Statistics at TNR:**
+    - Total cats analyzed: {len(age_data):,}
+    - Median age: {age_data['age_at_tnr_months'].median()/12:.1f} years
+    - Most common age: {age_counts.iloc[age_counts['count'].argmax()]['age_label']} ({age_counts['count'].max()} cats)
+    - Kittens (<6 months): {len(age_data[age_data['age_at_tnr_months'] < 6]):,} cats ({len(age_data[age_data['age_at_tnr_months'] < 6])/len(age_data)*100:.1f}%)
+    - Young adults (1-3 years): {len(age_data[(age_data['age_at_tnr_months'] >= 12) & (age_data['age_at_tnr_months'] < 36)]):,} cats ({len(age_data[(age_data['age_at_tnr_months'] >= 12) & (age_data['age_at_tnr_months'] < 36)])/len(age_data)*100:.1f}%)
     """)
-    
-    # Add statistics for cats beyond the visible range
-    cats_beyond_range = len(age_dist_data[age_dist_data['age_at_tnr_months'] > 200])
-    if cats_beyond_range > 0:
-        st.markdown(f"*There are {cats_beyond_range} cats older than 200 months not displayed on this chart.*")
     
     # Show the plot
     st.plotly_chart(fig, use_container_width=True)
@@ -394,7 +394,7 @@ def main():
         prev_year_data = tnr_data[tnr_data['year'] == (selected_period - 1)]
         prev_year_tnr = prev_year_data.groupby('postcode').size()
         
-        # Calculate changes
+        # Calculate changes 
         yoy_change = total_period_procedures - len(prev_year_data)
         yoy_percent = (yoy_change / len(prev_year_data) * 100) if len(prev_year_data) > 0 else 0
         
@@ -420,34 +420,43 @@ def main():
         )
 
 
-def calculate_age_at_tnr(appointments_df, cats_df):
-    # Merge appointments with cats data on microchip
-    merged_df = pd.merge(appointments_df, cats_df, on='microchip', how='left')
+def calculate_age_at_tnr(tnr_data):
+    """
+    Calculate the age of each cat at the time of their TNR procedure.
     
-    # Convert dates to datetime
-    merged_df['date'] = pd.to_datetime(merged_df['date'], utc=True)
-    merged_df['last_updated'] = pd.to_datetime(merged_df['last_updated'], utc=True)
+    The TNR date is the 'date' column in the appointments table.
+    The current age is from 'age_years' and 'age_months' in the cats table.
+    """
+    # Create a copy to avoid modifying the original data
+    df = tnr_data.copy()
     
-    # Calculate age at last_updated in months
-    merged_df['age_at_last_update_months'] = (merged_df['age_years'].fillna(0) * 12) + merged_df['age_months'].fillna(0)
+    # Ensure date column is datetime
+    df['date'] = pd.to_datetime(df['date'], utc=True)
     
-    # Calculate the difference in months between last_updated and TNR date
-    merged_df['months_since_last_update'] = (merged_df['date'] - merged_df['last_updated']).dt.days // 30
+    # Current date
+    current_date = pd.Timestamp.now(tz='UTC')
     
-    # Calculate age at TNR
-    merged_df['age_at_tnr_months'] = merged_df['age_at_last_update_months'] + merged_df['months_since_last_update']
+    # Calculate current age in months (from cats table)
+    df['current_age_months'] = (df['age_years'].fillna(0) * 12) + df['age_months'].fillna(0)
     
-    # Get unique cats (using first TNR appointment for each cat)
-    unique_cats = merged_df.sort_values('date').groupby('microchip').first()
+    # Calculate months elapsed since TNR (from appointments date)
+    df['months_since_tnr'] = ((current_date - df['date']).dt.days / 30.44).round()
     
-    # Calculate average age in months
-    avg_months = unique_cats['age_at_tnr_months'].mean()
+    # Calculate age at time of TNR
+    df['age_at_tnr_months'] = df['current_age_months'] - df['months_since_tnr']
     
-    # Convert back to years and months
+    # Filter out negative ages (data inconsistencies)
+    df = df[df['age_at_tnr_months'] >= 0]
+    
+    # For each unique cat, use the earliest TNR record
+    df_unique = df.sort_values('date').groupby('microchip').first().reset_index()
+    
+    # Calculate statistics
+    avg_months = df_unique['age_at_tnr_months'].mean()
     avg_years = int(avg_months // 12)
-    avg_remaining_months = round(avg_months % 12, 1)
+    avg_months_remainder = round(avg_months % 12, 1)
     
-    return avg_years, avg_remaining_months
+    return avg_years, avg_months_remainder, df_unique
 
 # Calculate age at TNR for the interactive graph
 def prepare_age_distribution_data(tnr_data):
@@ -463,7 +472,7 @@ def prepare_age_distribution_data(tnr_data):
     # Calculate how many months have passed since TNR
     df['months_since_tnr'] = (df['last_updated'] - df['date']).dt.days / 30.44
     
-    # The age at TNR is the current age minus months since TNR
+    # Calculate age at TNR by subtracting the elapsed time from current age
     df['age_at_tnr_months'] = df['current_age_months'] - df['months_since_tnr']
     
     # Filter out any negative ages or other anomalies
