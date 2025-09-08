@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env*.example
 venv/
 */address_audit
 */dirty_cats.csv
@@ -8,3 +10,4 @@ venv/
 */google_failed_geocoded_cats.json
 *.history/
 *.vscode/ # Optional: if you also want to ignore .vscode
+.streamlit/secrets.toml

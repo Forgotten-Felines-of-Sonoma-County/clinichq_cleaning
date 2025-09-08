@@ -20,18 +20,23 @@ st.set_page_config(
 load_dotenv()
 
 # Initialize Supabase client with better error handling
+
+
 def init_connection():
     try:
-        # First try to get credentials from Streamlit secrets
-        try:
-            url = st.secrets["SUPABASE_URL"]
-            key = st.secrets["SUPABASE_KEY"]
-        except:
-            # If not in Streamlit Cloud, try local environment variables
-            load_dotenv()  # Load local .env file
-            url = os.getenv("SUPABASE_URL")
-            key = os.getenv("SUPABASE_KEY")
-        
+        # First try environment variables (works with Cloud Run Secret Manager)
+        load_dotenv()  # Load local .env file if present
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_KEY")
+
+        # Fall back to Streamlit secrets if env vars not found
+        if not url or not key:
+            try:
+                url = st.secrets["SUPABASE_URL"]
+                key = st.secrets["SUPABASE_KEY"]
+            except:
+                pass
+
         if not url or not key:
             st.error("""
             Supabase credentials not found. Please ensure you have either:
@@ -47,7 +52,7 @@ def init_connection():
             1. Configured secrets in your Streamlit dashboard
             """)
             st.stop()
-            
+
         return create_client(url, key)
     except Exception as e:
         st.error(f"""
@@ -60,26 +65,29 @@ def init_connection():
         """)
         st.stop()
 
+
 # Use the connection
 supabase = init_connection()
 
 # Function to fetch all TNR appointments with pagination
+
+
 @st.cache_data
 def fetch_all_tnr_appointments():
     all_appointments = []
     page_size = 1000
     start = 0
-    
+
     while True:
         response = supabase.table('appointments').select(
             '*'
         ).eq('appointment_type', 'Spay Or Neuter').range(start, start + page_size - 1).execute()
-        
+
         batch_df = pd.DataFrame(response.data)
-        
+
         if len(batch_df) == 0:
             break
-            
+
         if len(batch_df) > 0:
             microchips = batch_df['microchip'].unique()
             # Ensure last_updated is included
@@ -90,60 +98,67 @@ def fetch_all_tnr_appointments():
                 'age_months',
                 'last_updated'  # Include last_updated
             ).in_('microchip', microchips).execute()
-            
+
             cats_df = pd.DataFrame(cats_response.data)
-            
+
             # Merge appointments with cat data
             merged_df = pd.merge(batch_df, cats_df, on='microchip', how='left')
             all_appointments.append(merged_df)
-            
+
         start += page_size
-        
+
     return pd.concat(all_appointments) if all_appointments else pd.DataFrame()
 
 # Function to fetch all cats with pagination
+
+
 @st.cache_data
 def fetch_all_cats():
     all_cats = []
     page_size = 1000
     start = 0
-    
+
     while True:
-        response = supabase.table('cats').select('microchip').range(start, start + page_size - 1).execute()
+        response = supabase.table('cats').select('microchip').range(
+            start, start + page_size - 1).execute()
         batch_df = pd.DataFrame(response.data)
-        
+
         if len(batch_df) == 0:
             break
-            
+
         all_cats.append(batch_df)
         start += page_size
-        
+
     return pd.concat(all_cats) if all_cats else pd.DataFrame()
 
 # Main app
+
+
 def main():
     # Header
     st.title("🐈 Forgotten Felines TNR Dashboard")
-    st.markdown("Trap-Neuter-Return program metrics for Forgotten Felines of Sonoma County (data taken via ClincHQ)")
-    
+    st.markdown(
+        "Trap-Neuter-Return program metrics for Forgotten Felines of Sonoma County (data taken via ClincHQ)")
+
     # Load data with loading spinner
     with st.spinner("Loading TNR data..."):
         tnr_data = fetch_all_tnr_appointments()
         cats_df = fetch_all_cats()
-    
+
     # Convert dates
     tnr_data['date'] = pd.to_datetime(tnr_data['date'], utc=True)
-    
+
     # After loading data and before metrics row
     avg_years, avg_months, age_data = calculate_age_at_tnr(tnr_data)
-    
+
     # Update metrics row to include average age
     col1, col2, col3, col4 = st.columns(4)
-    
+
     total_cats = len(cats_df['microchip'].unique())
     total_altered = len(tnr_data['microchip'].unique())
-    alteration_rate = (total_altered / total_cats * 100) if total_cats > 0 else 0
-    
+    alteration_rate = (total_altered / total_cats *
+                       100) if total_cats > 0 else 0
+
     with col1:
         st.metric("Total Cats Tracked", f"{total_cats:,}")
     with col2:
@@ -151,17 +166,17 @@ def main():
     with col3:
         st.metric("Alteration Rate", f"{alteration_rate:.1f}%")
     with col4:
-        st.metric("Average Age at TNR", 
-                 f"{avg_years}y {avg_months}m",
-                 help="Average age of cats at the time they underwent TNR, calculated from current age")
-    
+        st.metric("Average Age at TNR",
+                  f"{avg_years}y {avg_months}m",
+                  help="Average age of cats at the time they underwent TNR, calculated from current age")
+
     # TNR Progress Over Time - Interactive
     st.subheader("TNR Progress Over Time")
-    
+
     # Prepare data
     sorted_data = tnr_data.sort_values('date')
     sorted_data['cumulative_count'] = range(1, len(sorted_data) + 1)
-    
+
     # Create interactive line plot
     fig_progress = go.Figure()
     fig_progress.add_trace(
@@ -174,7 +189,7 @@ def main():
             hovertemplate='Date: %{x}<br>Total TNR: %{y}<extra></extra>'
         )
     )
-    
+
     fig_progress.update_layout(
         title='Cumulative TNR Procedures',
         xaxis_title='Date',
@@ -183,32 +198,30 @@ def main():
         height=500,
         showlegend=False
     )
-    
+
     st.plotly_chart(fig_progress, use_container_width=True)
-    
-    
-    
-    
-    
+
     # Age Distribution at TNR
     st.subheader("Age Distribution at Time of TNR")
-    
+
     # Prepare the data
     age_dist_data = prepare_age_distribution_data(tnr_data)
-    
+
     # Create age distribution counts
-    age_counts = age_dist_data['age_at_tnr_months'].value_counts().reset_index()
+    age_counts = age_dist_data['age_at_tnr_months'].value_counts(
+    ).reset_index()
     age_counts.columns = ['age_month', 'count']
     age_counts = age_counts.sort_values('age_month')
-    
+
     # Convert months to years and months for display
     age_counts['years'] = age_counts['age_month'] // 12
     age_counts['months'] = age_counts['age_month'] % 12
-    age_counts['age_label'] = age_counts.apply(lambda x: f"{x['years']}y {x['months']}m", axis=1)
-    
+    age_counts['age_label'] = age_counts.apply(
+        lambda x: f"{x['years']}y {x['months']}m", axis=1)
+
     # Create interactive histogram
     fig = px.bar(
-        age_counts, 
+        age_counts,
         x='age_month',
         y='count',
         labels={'age_month': 'Age (months)', 'count': 'Number of Cats'},
@@ -217,12 +230,12 @@ def main():
         color_continuous_scale='Blues',
         hover_data=['age_label', 'count']
     )
-    
+
     # Customize hover template
     fig.update_traces(
         hovertemplate='<b>Age:</b> %{customdata[0]}<br><b>Count:</b> %{y}<extra></extra>'
     )
-    
+
     # Set layout with x-axis limit of 200 months
     fig.update_layout(
         xaxis_title='Age (months)',
@@ -233,11 +246,12 @@ def main():
             tickmode='linear',
             tick0=0,
             dtick=12,  # Major ticks every 12 months (1 year)
-            ticktext=[f"{i}y" for i in range(0, 17)],  # 0 to 16 years (200 months is ~16.7 years)
+            # 0 to 16 years (200 months is ~16.7 years)
+            ticktext=[f"{i}y" for i in range(0, 17)],
             tickvals=[i*12 for i in range(0, 17)]
         )
     )
-    
+
     # Add vertical lines every year for better readability
     for i in range(1, 17):
         fig.add_shape(
@@ -247,7 +261,7 @@ def main():
             yref="paper",
             line=dict(color="gray", width=1, dash="dot")
         )
-    
+
     # Add more statistics with 1-3 year age group
     st.markdown(f"""
     **Age Statistics at TNR:**
@@ -257,16 +271,17 @@ def main():
     - Kittens (<6 months): {len(age_data[age_data['age_at_tnr_months'] < 6]):,} cats ({len(age_data[age_data['age_at_tnr_months'] < 6])/len(age_data)*100:.1f}%)
     - Young adults (1-3 years): {len(age_data[(age_data['age_at_tnr_months'] >= 12) & (age_data['age_at_tnr_months'] < 36)]):,} cats ({len(age_data[(age_data['age_at_tnr_months'] >= 12) & (age_data['age_at_tnr_months'] < 36)])/len(age_data)*100:.1f}%)
     """)
-    
+
     # Show the plot
     st.plotly_chart(fig, use_container_width=True)
-    
+
     # Monthly Trends - New Interactive Chart
     st.subheader("Monthly TNR Trends")
-    
-    monthly_counts = tnr_data.groupby(pd.Grouper(key='date', freq='M')).size().reset_index()
+
+    monthly_counts = tnr_data.groupby(pd.Grouper(
+        key='date', freq='M')).size().reset_index()
     monthly_counts.columns = ['date', 'count']
-    
+
     fig_monthly = go.Figure()
     fig_monthly.add_trace(
         go.Scatter(
@@ -278,7 +293,7 @@ def main():
             hovertemplate='Month: %{x|%B %Y}<br>TNR Count: %{y}<extra></extra>'
         )
     )
-    
+
     fig_monthly.update_layout(
         title='Monthly TNR Procedures',
         xaxis_title='Month',
@@ -287,23 +302,20 @@ def main():
         showlegend=False,
         hovermode='x unified'
     )
-    
+
     st.plotly_chart(fig_monthly, use_container_width=True)
-    
+
     # Monthly Statistics
     st.subheader("Monthly Statistics")
     monthly_counts = tnr_data.groupby(pd.Grouper(key='date', freq='M')).size()
-    
+
     col1, col2 = st.columns(2)
     with col1:
         st.metric("Average Monthly Procedures", f"{monthly_counts.mean():.1f}")
     with col2:
-        st.metric("Highest Month", 
-                 f"{monthly_counts.max()} procedures",
-                 f"({monthly_counts.idxmax().strftime('%B %Y')})")
-    
-    
-    
+        st.metric("Highest Month",
+                  f"{monthly_counts.max()} procedures",
+                  f"({monthly_counts.idxmax().strftime('%B %Y')})")
 
     # Merged Top 10 Neighborhoods Visualization with All Time option
     st.subheader("Top 10 Neighborhoods by TNR Count")
@@ -314,10 +326,12 @@ def main():
     max_year = tnr_data['year'].max()
 
     # Create year selector with dropdown including "All Time" option
-    years_list = ["All Time"] + list(range(int(max_year), int(min_year) - 1, -1))  # Descending order with All Time first
+    # Descending order with All Time first
+    years_list = ["All Time"] + \
+        list(range(int(max_year), int(min_year) - 1, -1))
     selected_period = st.selectbox(
         "Select Time Period",
-     years_list,
+        years_list,
         index=0  # Default to "All Time"
     )
 
@@ -333,16 +347,17 @@ def main():
 
 # Get top 10 neighborhoods for selected period
     period_tnr_by_postcode = filtered_data.groupby('postcode').size()
-    period_top_10_postcodes = period_tnr_by_postcode.nlargest(10).sort_values(ascending=False)
+    period_top_10_postcodes = period_tnr_by_postcode.nlargest(
+        10).sort_values(ascending=False)
 
 # Create the visualization
     fig, ax = plt.subplots(figsize=(10, 6))
 
 # Create horizontal bar plot with blue color palette
-    sns.barplot(x=period_top_10_postcodes.values, 
-            y=period_top_10_postcodes.index, 
-            palette=sns.color_palette('mako')[::-1], 
-            ax=ax)
+    sns.barplot(x=period_top_10_postcodes.values,
+                y=period_top_10_postcodes.index,
+                palette=sns.color_palette('mako')[::-1],
+                ax=ax)
 
 # Customize the plot
     ax.set_title(f'Top 10 Neighborhoods by TNR Count ({period_title})', pad=20)
@@ -361,54 +376,59 @@ def main():
     period_unique_cats = len(filtered_data['microchip'].unique())
 
 # Display top neighborhood safely (check if we have data first)
-    top_neighborhood = period_top_10_postcodes.index[0] if len(period_top_10_postcodes) > 0 else "N/A"
-    top_count = int(period_top_10_postcodes.values[0]) if len(period_top_10_postcodes) > 0 else 0
+    top_neighborhood = period_top_10_postcodes.index[0] if len(
+        period_top_10_postcodes) > 0 else "N/A"
+    top_count = int(period_top_10_postcodes.values[0]) if len(
+        period_top_10_postcodes) > 0 else 0
 
 # Create three columns for metrics
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric(
-        f"Total TNR Procedures ({period_title})",
-        f"{total_period_procedures:,}"
-    )
+            f"Total TNR Procedures ({period_title})",
+            f"{total_period_procedures:,}"
+        )
 
     with col2:
         st.metric(
-        f"Unique Cats Altered ({period_title})",
-        f"{period_unique_cats:,}"
-    )
+            f"Unique Cats Altered ({period_title})",
+            f"{period_unique_cats:,}"
+        )
 
     with col3:
         st.metric(
-        "Top Neighborhood",
-        f"{top_neighborhood}",
-        f"{top_count} procedures"
-    )
+            "Top Neighborhood",
+            f"{top_neighborhood}",
+            f"{top_count} procedures"
+        )
 
 # Add year-over-year comparison ONLY if a specific year is selected (not All Time)
     if selected_period != "All Time" and selected_period > min_year:
-        st.subheader("Year-over-Year Comparison") 
-        
+        st.subheader("Year-over-Year Comparison")
+
         # Get previous year data
         prev_year_data = tnr_data[tnr_data['year'] == (selected_period - 1)]
         prev_year_tnr = prev_year_data.groupby('postcode').size()
-        
-        # Calculate changes 
+
+        # Calculate changes
         yoy_change = total_period_procedures - len(prev_year_data)
-        yoy_percent = (yoy_change / len(prev_year_data) * 100) if len(prev_year_data) > 0 else 0
-        
-        st.write(f"Change from {selected_period-1}: {yoy_change:+,} procedures ({yoy_percent:+.1f}%)")
-        
+        yoy_percent = (yoy_change / len(prev_year_data) *
+                       100) if len(prev_year_data) > 0 else 0
+
+        st.write(
+            f"Change from {selected_period-1}: {yoy_change:+,} procedures ({yoy_percent:+.1f}%)")
+
         # Show neighborhood changes
         prev_top_10 = set(prev_year_tnr.nlargest(10).index)
         current_top_10 = set(period_top_10_postcodes.index)
-        
+
         new_to_top_10 = current_top_10 - prev_top_10
         if new_to_top_10:
             st.write("📈 **New to Top 10 this year:**")
             for postcode in new_to_top_10:
-                st.write(f"- Postcode {postcode}: {period_tnr_by_postcode[postcode]} TNR procedures")
+                st.write(
+                    f"- Postcode {postcode}: {period_tnr_by_postcode[postcode]} TNR procedures")
 
     # Data Download Section
     st.subheader("Download Data")
@@ -423,68 +443,76 @@ def main():
 def calculate_age_at_tnr(tnr_data):
     """
     Calculate the age of each cat at the time of their TNR procedure.
-    
+
     The TNR date is the 'date' column in the appointments table.
     The current age is from 'age_years' and 'age_months' in the cats table.
     """
     # Create a copy to avoid modifying the original data
     df = tnr_data.copy()
-    
+
     # Ensure date column is datetime
     df['date'] = pd.to_datetime(df['date'], utc=True)
-    
+
     # Current date
     current_date = pd.Timestamp.now(tz='UTC')
-    
+
     # Calculate current age in months (from cats table)
-    df['current_age_months'] = (df['age_years'].fillna(0) * 12) + df['age_months'].fillna(0)
-    
+    df['current_age_months'] = (df['age_years'].fillna(
+        0) * 12) + df['age_months'].fillna(0)
+
     # Calculate months elapsed since TNR (from appointments date)
-    df['months_since_tnr'] = ((current_date - df['date']).dt.days / 30.44).round()
-    
+    df['months_since_tnr'] = (
+        (current_date - df['date']).dt.days / 30.44).round()
+
     # Calculate age at time of TNR
     df['age_at_tnr_months'] = df['current_age_months'] - df['months_since_tnr']
-    
+
     # Filter out negative ages (data inconsistencies)
     df = df[df['age_at_tnr_months'] >= 0]
-    
+
     # For each unique cat, use the earliest TNR record
-    df_unique = df.sort_values('date').groupby('microchip').first().reset_index()
-    
+    df_unique = df.sort_values('date').groupby(
+        'microchip').first().reset_index()
+
     # Calculate statistics
     avg_months = df_unique['age_at_tnr_months'].mean()
     avg_years = int(avg_months // 12)
     avg_months_remainder = round(avg_months % 12, 1)
-    
+
     return avg_years, avg_months_remainder, df_unique
 
 # Calculate age at TNR for the interactive graph
+
+
 def prepare_age_distribution_data(tnr_data):
     df = tnr_data.copy()
-    
+
     # Ensure date columns are datetime
     df['date'] = pd.to_datetime(df['date'])
     df['last_updated'] = pd.to_datetime(df['last_updated'])
-    
+
     # Calculate current age in months
-    df['current_age_months'] = (df['age_years'].fillna(0) * 12) + df['age_months'].fillna(0)
-    
+    df['current_age_months'] = (df['age_years'].fillna(
+        0) * 12) + df['age_months'].fillna(0)
+
     # Calculate how many months have passed since TNR
     df['months_since_tnr'] = (df['last_updated'] - df['date']).dt.days / 30.44
-    
+
     # Calculate age at TNR by subtracting the elapsed time from current age
     df['age_at_tnr_months'] = df['current_age_months'] - df['months_since_tnr']
-    
+
     # Filter out any negative ages or other anomalies
     df = df[df['age_at_tnr_months'] >= 0]
-    
+
     # Round to nearest month for binning
     df['age_at_tnr_months'] = df['age_at_tnr_months'].round().astype(int)
-    
+
     # For each unique cat, use the earliest TNR record
-    df_unique = df.sort_values('date').groupby('microchip').first().reset_index()
-    
+    df_unique = df.sort_values('date').groupby(
+        'microchip').first().reset_index()
+
     return df_unique
 
+
 if __name__ == "__main__":
-    main() 
+    main()
